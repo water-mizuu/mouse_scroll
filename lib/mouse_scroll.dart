@@ -6,7 +6,8 @@ import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 
-class MouseScroll extends StatefulWidget {
+@optionalTypeArgs
+class MouseScroll<Controller extends ScrollController> extends StatefulWidget {
   const MouseScroll({
     required this.builder,
     this.controller,
@@ -16,18 +17,18 @@ class MouseScroll extends StatefulWidget {
     this.scrollSpeed = 1.0,
     this.animationCurve = Curves.easeOutQuart,
   });
-  final ScrollController? controller;
+  final Controller? controller;
   final ScrollPhysics mobilePhysics;
   final Duration duration;
   final double scrollSpeed;
   final Curve animationCurve;
-  final Widget Function(BuildContext, ScrollController, ScrollPhysics) builder;
+  final Widget Function(BuildContext, Controller, ScrollPhysics) builder;
 
   @override
-  State<MouseScroll> createState() => _MouseScrollState();
+  State<MouseScroll<Controller>> createState() => _MouseScrollState<Controller>();
 }
 
-class _MouseScrollState extends State<MouseScroll> {
+class _MouseScrollState<Controller extends ScrollController> extends State<MouseScroll<Controller>> {
   late final ScrollController scrollController;
 
   @override
@@ -48,11 +49,15 @@ class _MouseScrollState extends State<MouseScroll> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<ScrollState>(
-      create: (BuildContext context) => ScrollState(widget.mobilePhysics, scrollController, widget.duration),
+    return ChangeNotifierProvider<ScrollState<Controller>>(
+      create: (BuildContext context) => ScrollState<Controller>(
+        widget.mobilePhysics,
+        scrollController as Controller,
+        widget.duration,
+      ),
       builder: (BuildContext context, _) {
-        ScrollState scrollState = context.read<ScrollState>();
-        ScrollController controller = scrollState.controller;
+        ScrollState<Controller> scrollState = context.read();
+        Controller controller = scrollState.controller;
         var (ScrollPhysics physics, _) = context.select((ScrollState s) => (s.activePhysics, s.updateState));
 
         scrollState.handlePipelinedScroll?.call();
@@ -73,11 +78,11 @@ class _MouseScrollState extends State<MouseScroll> {
 const BouncingScrollPhysics kMobilePhysics = BouncingScrollPhysics();
 const NeverScrollableScrollPhysics kDesktopPhysics = NeverScrollableScrollPhysics();
 
-class ScrollState with ChangeNotifier {
+class ScrollState<Controller extends ScrollController> with ChangeNotifier {
   ScrollState(this.mobilePhysics, this.controller, this.duration);
 
   final ScrollPhysics mobilePhysics;
-  final ScrollController controller;
+  final Controller controller;
   final Duration duration;
 
   late ScrollPhysics activePhysics = mobilePhysics;
